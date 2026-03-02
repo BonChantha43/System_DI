@@ -1,0 +1,110 @@
+<!doctype html>
+<html lang="km">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width,initial-scale=1" />
+  <title>System DI — Smart Search</title>
+
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+  <link rel="icon" type="image/png" href="./image.png">
+  <link rel="stylesheet" href="./styles.css" />
+</head>
+
+<body data-theme="dark">
+  <main class="wrap">
+    <header class="top">
+      <div class="brand">
+        <h1>System DI</h1>
+        <p class="sub">Search ឈ្មោះ / ID និង Filter តាមក្រុម</p>
+      </div>
+
+      <div class="rightTop">
+        <button class="toggle" id="btnTheme" type="button" title="Dark / Light">
+          <span class="toggleIcon" aria-hidden="true">🌙</span>
+          <span class="toggleText" id="themeText">Dark</span>
+        </button>
+
+        <div class="pill" id="statusPill">
+          <span class="dot" id="statusDot"></span>
+          <span id="statusText">Ready</span>
+        </div>
+      </div>
+    </header>
+
+    <section class="panel">
+      <div class="controls">
+        <div class="field">
+          <label>Search Name (Khmer)</label>
+          <input id="qName" type="text" placeholder="ឧ: ឃឹម កុសល" autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label>Search ID</label>
+          <input id="qId" type="text" placeholder="ឧ: 1001 / FEA2024..." autocomplete="off" />
+        </div>
+
+        <div class="field">
+          <label>Search តាមក្រុម</label>
+          <select id="qGroup">
+            <option value="">ក្រុមទាំងអស់</option>
+          </select>
+        </div>
+
+        <div class="actions">
+          <button class="btn" id="btnReload" title="Reload from Sheet">Reload</button>
+          <button class="btn ghost" id="btnClear" title="Clear filters">Clear</button>
+          <button class="btn ghost" id="btnPrint" title="Print / Save as PDF">Print PDF</button>
+        </div>
+      </div>
+
+      <!-- KPIs (Total Rows + Matched removed) -->
+      <div class="meta">
+        <div class="kpi">
+          <div class="kpiLabel">បុគ្គលិកសរុប</div>
+          <div class="kpiValue" id="kpiStaff">0</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpiLabel">សរុប ប្រុស</div>
+          <div class="kpiValue" id="kpiMale">0</div>
+        </div>
+
+        <div class="kpi">
+          <div class="kpiLabel">សរុប ស្រី</div>
+          <div class="kpiValue" id="kpiFemale">0</div>
+        </div>
+      </div>
+
+      <div class="tableWrap">
+        <table class="table">
+          <thead>
+            <tr>
+                <th>ល.រ</th>
+                <th>ឈ្មោះ</th>
+                <th>ភេទ</th>
+                <th>ថ្នាក់</th>
+                <th>ជំនាន់</th>
+                <th>តួនាទី</th>
+                <th>ID</th>
+                <th>ក្រុម</th>
+              </tr>
+          </thead>
+          <tbody id="tbody">
+            <tr class="empty">
+                <td colspan="8">មិនទាន់មានទិន្នន័យ… ចុច Reload</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <footer class="foot">
+      <span>Tip: វាយតែផ្នែកមួយក៏បាន (partial match)</span>
+    </footer>
+  </main>
+
+  <script src="./app.js"></script>
+</body>
+</html>

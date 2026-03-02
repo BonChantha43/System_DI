@@ -1,0 +1,369 @@
+/**
+ * System DI Smart Search
+ * Fetch Google Sheet range D10:N974 (sheet DB_DI_DUC)
+ * Map columns:
+ *   D=Name (idx 0), F=Gender (idx 2), G=Class (idx 3), H=Generation (idx 4),
+ *   J=Role (idx 6), M=ID (idx 9), N=Group (idx 10)
+ */
+
+const SHEET_ID = "1h6pqlcoUSKPWsk7it4jFLtg5Oc_w7gXGnKCXSIduK7E";
+const GID = "864623093";
+const SHEET_NAME = "DB_DI_DUC";
+const RANGE = "D10:N974";
+
+const GVIZ_URL =
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
+  `?gid=${encodeURIComponent(GID)}` +
+  `&sheet=${encodeURIComponent(SHEET_NAME)}` +
+  `&range=${encodeURIComponent(RANGE)}` +
+  `&tqx=out:json`;
+
+const els = {
+  qName: document.getElementById("qName"),
+  qId: document.getElementById("qId"),
+  qGroup: document.getElementById("qGroup"),
+  btnReload: document.getElementById("btnReload"),
+  btnClear: document.getElementById("btnClear"),
+  btnPrint: document.getElementById("btnPrint"),
+  tbody: document.getElementById("tbody"),
+
+  kpiStaff: document.getElementById("kpiStaff"),
+  kpiMale: document.getElementById("kpiMale"),
+  kpiFemale: document.getElementById("kpiFemale"),
+
+  statusDot: document.getElementById("statusDot"),
+  statusText: document.getElementById("statusText"),
+
+  btnTheme: document.getElementById("btnTheme"),
+  themeText: document.getElementById("themeText"),
+  themeIcon: document.querySelector(".toggleIcon"),
+};
+
+let CACHE = { rows: [] };
+let LAST_FILTERED = [];
+
+/* =========================
+   THEME (Dark/Light)
+========================= */
+function applyTheme(theme) {
+  document.body.setAttribute("data-theme", theme);
+  localStorage.setItem("theme", theme);
+
+  const isDark = theme === "dark";
+  els.themeText.textContent = isDark ? "Dark" : "Light";
+  els.themeIcon.textContent = isDark ? "🌙" : "☀️";
+}
+
+(function initTheme() {
+  const saved = localStorage.getItem("theme");
+  applyTheme(saved === "light" ? "light" : "dark");
+})();
+
+els.btnTheme.addEventListener("click", () => {
+  const cur = document.body.getAttribute("data-theme");
+  applyTheme(cur === "dark" ? "light" : "dark");
+});
+
+/* =========================
+   UI Helpers
+========================= */
+function setStatus(text, mode = "idle") {
+  els.statusText.textContent = text;
+
+  if (mode === "ok") {
+    els.statusDot.style.background = "var(--ok)";
+    els.statusDot.style.boxShadow = "0 0 0 4px rgba(47,211,155,.16)";
+    return;
+  }
+  if (mode === "busy") {
+    els.statusDot.style.background = "var(--warn)";
+    els.statusDot.style.boxShadow = "0 0 0 4px rgba(245,194,91,.16)";
+    return;
+  }
+  if (mode === "err") {
+    els.statusDot.style.background = "var(--err)";
+    els.statusDot.style.boxShadow = "0 0 0 4px rgba(255,107,139,.16)";
+    return;
+  }
+  els.statusDot.style.background = "var(--accent)";
+  els.statusDot.style.boxShadow = "0 0 0 4px rgba(106,183,255,.16)";
+}
+
+function debounce(fn, ms = 180) {
+  let t;
+  return (...args) => {
+    clearTimeout(t);
+    t = setTimeout(() => fn(...args), ms);
+  };
+}
+
+function norm(s) {
+  return (s ?? "").toString().trim().replace(/\s+/g, " ").toLowerCase();
+}
+
+function cellToText(c) {
+  if (!c) return "";
+  if (typeof c.v === "string" || typeof c.v === "number") return String(c.v);
+  if (c.f) return String(c.f);
+  return "";
+}
+
+function escapeHtml(s) {
+  return (s ?? "")
+    .toString()
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+// detect male/female (supports: ប្រុស/ស្រី, Male/Female, M/F, ប/ស)
+function genderType(g) {
+  const x = norm(g);
+  if (!x) return "unknown";
+  if (x.includes("ប្រុស") || x === "m" || x.includes("male") || x === "ប") return "male";
+  if (x.includes("ស្រី") || x === "f" || x.includes("female") || x === "ស") return "female";
+  return "unknown";
+}
+
+function countMaleFemale(rows) {
+  let male = 0, female = 0;
+  for (const r of rows) {
+    const t = genderType(r.gender);
+    if (t === "male") male++;
+    else if (t === "female") female++;
+  }
+  return { male, female };
+}
+
+/* =========================
+   Data
+========================= */
+async function fetchSheet() {
+  setStatus("Loading…", "busy");
+
+  const res = await fetch(GVIZ_URL, { cache: "no-store" });
+  if (!res.ok) throw new Error(`HTTP ${res.status}`);
+
+  const text = await res.text();
+  const jsonStr = text
+    .replace(/^[\s\S]*setResponse\(/, "")
+    .replace(/\);\s*$/, "");
+  const data = JSON.parse(jsonStr);
+
+  const rows = data?.table?.rows ?? [];
+
+  const mapped = rows
+    .map((r) => {
+      const c = r.c || [];
+      return {
+        nameKh: cellToText(c[0]),   // D
+        gender: cellToText(c[2]),   // F
+        clazz:  cellToText(c[3]),   // G
+        gen:    cellToText(c[4]),   // H
+        role:   cellToText(c[6]),   // J
+        id:     cellToText(c[9]),   // M
+        group:  cellToText(c[10]),  // N
+      };
+    })
+    .filter(r => r.nameKh || r.id || r.group || r.gender || r.clazz || r.gen || r.role);
+
+  CACHE.rows = mapped;
+
+  // staff total = total rows
+  els.kpiStaff.textContent = String(mapped.length);
+
+  buildGroupOptions(mapped);
+  render();
+
+  setStatus("Loaded ✓", "ok");
+}
+
+function buildGroupOptions(rows) {
+  const current = els.qGroup.value;
+  const groups = Array.from(new Set(rows.map(r => r.group).filter(Boolean)))
+    .sort((a,b) => a.localeCompare(b));
+
+  els.qGroup.innerHTML =
+    `<option value="">ក្រុមទាំងអស់</option>` +
+    groups.map(g => `<option value="${escapeHtml(g)}">${escapeHtml(g)}</option>`).join("");
+
+  if (groups.includes(current)) els.qGroup.value = current;
+}
+
+function applyFilter(rows) {
+  const qName = norm(els.qName.value);
+  const qId = norm(els.qId.value);
+  const qGroup = norm(els.qGroup.value);
+
+  return rows.filter(r => {
+    const n = norm(r.nameKh);
+    const id = norm(r.id);
+    const g = norm(r.group);
+
+    if (qName && !n.includes(qName)) return false;
+    if (qId && !id.includes(qId)) return false;
+    if (qGroup && g !== qGroup) return false;
+    return true;
+  });
+}
+
+function render() {
+  const rows = CACHE.rows || [];
+  const filtered = applyFilter(rows);
+  LAST_FILTERED = filtered;
+
+  // update gender KPIs based on filtered rows
+  const mf = countMaleFemale(filtered);
+  els.kpiMale.textContent = String(mf.male);
+  els.kpiFemale.textContent = String(mf.female);
+
+  if (!rows.length) {
+    els.tbody.innerHTML = `
+      <tr class="empty"><td colspan="8">មិនទាន់មានទិន្នន័យ… ចុច Reload</td></tr>`;
+    return;
+  }
+  if (!filtered.length) {
+    els.tbody.innerHTML = `
+      <tr class="empty"><td colspan="8">រកមិនឃើញទិន្នន័យតាម Filter នេះទេ</td></tr>`;
+    return;
+  }
+
+  const LIMIT = 500;
+  const list = filtered.slice(0, LIMIT);
+
+  // ✅ FIX: use (r, i)
+  els.tbody.innerHTML = list.map((r, i) => `
+    <tr>
+      <td><span class="badge">${i + 1}</span></td>
+      <td>${escapeHtml(r.nameKh)}</td>
+      <td><span class="badge">${escapeHtml(r.gender || "—")}</span></td>
+      <td>${escapeHtml(r.clazz || "—")}</td>
+      <td>${escapeHtml(r.gen || "—")}</td>
+      <td>${escapeHtml(r.role || "—")}</td>
+      <td><span class="badge">${escapeHtml(r.id || "—")}</span></td>
+      <td><span class="badge">${escapeHtml(r.group || "—")}</span></td>
+    </tr>
+  `).join("");
+
+  if (filtered.length > LIMIT) {
+    els.tbody.insertAdjacentHTML("beforeend", `
+      <tr class="empty"><td colspan="8">
+        បង្ហាញតែ ${LIMIT} row ដំបូង (Matched សរុប ${filtered.length})
+      </td></tr>`);
+  }
+}
+
+/* =========================
+   Print PDF (Smart: Filter -> Filtered, No Filter -> All)
+========================= */
+function hasActiveFilter() {
+  const name = (els.qName?.value || "").trim();
+  const id = (els.qId?.value || "").trim();
+  const group = (els.qGroup?.value || "").trim();
+  return !!(name || id || group);
+}
+
+function preparePrint(rows) {
+  const title = document.querySelector(".brand h1")?.textContent?.trim() || "System DI";
+  const sub = document.querySelector(".sub")?.textContent?.trim() || "";
+
+  const mf = countMaleFemale(rows);
+
+  const headerHtml = `
+    <div id="printHeader" style="margin-bottom:10px">
+      <h2 style="margin:0 0 4px 0;font-size:18px">${escapeHtml(title)} — Report</h2>
+      <div style="color:#444;font-size:12px;margin-bottom:8px">${escapeHtml(sub)}</div>
+      <div style="font-size:12px;color:#111">
+        បុគ្គលិកសរុប: <b>${rows.length}</b> —
+        ប្រុស: <b>${mf.male}</b> —
+        ស្រី: <b>${mf.female}</b>
+      </div>
+      <hr style="border:none;border-top:1px solid #ddd;margin:10px 0 0 0">
+    </div>
+  `;
+
+  const panel = document.querySelector(".panel");
+  if (panel && !document.getElementById("printHeader")) {
+    panel.insertAdjacentHTML("afterbegin", headerHtml);
+  }
+
+  const tbody = document.getElementById("tbody");
+  tbody.setAttribute("data-original-html", tbody.innerHTML);
+
+  // print all rows (no limit)
+  tbody.innerHTML = rows.map((r, i) => `
+    <tr>
+      <td>${i + 1}</td>
+      <td>${escapeHtml(r.nameKh)}</td>
+      <td>${escapeHtml(r.gender || "—")}</td>
+      <td>${escapeHtml(r.clazz || "—")}</td>
+      <td>${escapeHtml(r.gen || "—")}</td>
+      <td>${escapeHtml(r.role || "—")}</td>
+      <td>${escapeHtml(r.id || "—")}</td>
+      <td>${escapeHtml(r.group || "—")}</td>
+    </tr>
+  `).join("");
+}
+
+function cleanupPrint() {
+  const tbody = document.getElementById("tbody");
+  const original = tbody.getAttribute("data-original-html");
+  if (original != null) {
+    tbody.innerHTML = original;
+    tbody.removeAttribute("data-original-html");
+  }
+  const ph = document.getElementById("printHeader");
+  if (ph) ph.remove();
+}
+
+/* =========================
+   Events
+========================= */
+const onChange = debounce(render, 160);
+
+els.qName.addEventListener("input", onChange);
+els.qId.addEventListener("input", onChange);
+els.qGroup.addEventListener("change", render);
+
+els.btnClear.addEventListener("click", () => {
+  els.qName.value = "";
+  els.qId.value = "";
+  els.qGroup.value = "";
+  render();
+});
+
+els.btnReload.addEventListener("click", async () => {
+  try {
+    await fetchSheet();
+  } catch (e) {
+    console.error(e);
+    setStatus("Load failed (check sheet sharing/public)", "err");
+    els.tbody.innerHTML = `
+      <tr class="empty"><td colspan="8">
+        Load បរាជ័យ។ សូមធ្វើឲ្យ Sheet អាចអានបាន (Anyone with link / Published) ហើយ Reload ម្តងទៀត
+      </td></tr>`;
+  }
+});
+
+// ✅ NO confirm
+// ✅ If Filter -> Print Filtered
+// ✅ If No Filter -> Print All
+els.btnPrint.addEventListener("click", () => {
+  const rowsToPrint = hasActiveFilter()
+    ? (LAST_FILTERED || [])
+    : (CACHE.rows || []);
+
+  preparePrint(rowsToPrint);
+
+  window.onafterprint = () => {
+    cleanupPrint();
+    window.onafterprint = null;
+  };
+
+  window.print();
+});
+
+// Auto load
+fetchSheet().catch(() => setStatus("Ready", "idle"));
