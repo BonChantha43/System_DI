@@ -15,7 +15,7 @@
 const SHEET_ID = "1h6pqlcoUSKPWsk7it4jFLtg5Oc_w7gXGnKCXSIduK7E";
 const GID = "864623093";
 const SHEET_NAME = "DB_DI_DUC";
-const RANGE = "D10:N974"; // ✅ K is inside this range
+const RANGE = "D10:N974"; // ✅ includes J,K,M,N
 
 const GVIZ_URL =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
@@ -28,6 +28,7 @@ const els = {
   qName: document.getElementById("qName"),
   qId: document.getElementById("qId"),
   qStatus: document.getElementById("qStatus"),
+  qRole: document.getElementById("qRole"),
 
   btnReload: document.getElementById("btnReload"),
   btnClear: document.getElementById("btnClear"),
@@ -137,6 +138,7 @@ function escapeHtml(s) {
     .replaceAll("'", "&#039;");
 }
 
+// detect male/female (supports: ប្រុស/ស្រី, Male/Female, M/F, ប/ស)
 function genderType(g) {
   const x = norm(g);
   if (!x) return "unknown";
@@ -201,11 +203,10 @@ function setAllGroupsSelected(on) {
 }
 
 /* =========================
-   Status options
+   Status + Role options
 ========================= */
 function buildStatusOptions(rows) {
   const current = norm(els.qStatus.value);
-
   const statuses = Array.from(new Set(rows.map(r => r.status).filter(Boolean)))
     .sort((a,b) => a.localeCompare(b));
 
@@ -216,6 +217,21 @@ function buildStatusOptions(rows) {
   if (current) {
     const found = statuses.find(s => norm(s) === current);
     if (found) els.qStatus.value = found;
+  }
+}
+
+function buildRoleOptions(rows) {
+  const current = norm(els.qRole.value);
+  const roles = Array.from(new Set(rows.map(r => r.role).filter(Boolean)))
+    .sort((a,b) => a.localeCompare(b));
+
+  els.qRole.innerHTML =
+    `<option value="">ទាំងអស់</option>` +
+    roles.map(s => `<option value="${escapeHtml(s)}">${escapeHtml(s)}</option>`).join("");
+
+  if (current) {
+    const found = roles.find(s => norm(s) === current);
+    if (found) els.qRole.value = found;
   }
 }
 
@@ -255,6 +271,7 @@ async function fetchSheet() {
   GROUPS = Array.from(new Set(mapped.map(r => r.group).filter(Boolean)))
     .sort((a,b) => a.localeCompare(b));
 
+  // remove missing group selections
   for (const k of Array.from(GROUP_SELECTED)) {
     if (!GROUPS.some(g => norm(g) === k)) GROUP_SELECTED.delete(k);
   }
@@ -262,6 +279,7 @@ async function fetchSheet() {
   renderGroupList();
 
   buildStatusOptions(mapped);
+  buildRoleOptions(mapped);
 
   render();
   setStatus("Loaded ✓", "ok");
@@ -274,19 +292,20 @@ function applyFilter(rows) {
   const qName = norm(els.qName.value);
   const qId = norm(els.qId.value);
   const qStatus = norm(els.qStatus.value);
+  const qRole = norm(els.qRole.value);
 
   return rows.filter(r => {
     const n = norm(r.nameKh);
     const id = norm(r.id);
     const g = norm(r.group);
     const st = norm(r.status);
+    const rl = norm(r.role);
 
     if (qName && !n.includes(qName)) return false;
     if (qId && !id.includes(qId)) return false;
-
     if (GROUP_SELECTED.size && !GROUP_SELECTED.has(g)) return false;
-
     if (qStatus && st !== qStatus) return false;
+    if (qRole && rl !== qRole) return false;
 
     return true;
   });
@@ -322,7 +341,7 @@ function render() {
       <td><span class="badge">${escapeHtml(r.gender || "—")}</span></td>
       <td>${escapeHtml(r.clazz || "—")}</td>
       <td>${escapeHtml(r.gen || "—")}</td>
-      <td>${escapeHtml(r.role || "—")}</td>
+      <td><span class="badge">${escapeHtml(r.role || "—")}</span></td>
       <td><span class="badge">${escapeHtml(r.id || "—")}</span></td>
       <td><span class="badge">${escapeHtml(r.group || "—")}</span></td>
       <td><span class="badge">${escapeHtml(r.status || "—")}</span></td>
@@ -344,7 +363,8 @@ function hasActiveFilter() {
   const name = (els.qName?.value || "").trim();
   const id = (els.qId?.value || "").trim();
   const status = (els.qStatus?.value || "").trim();
-  return !!(name || id || status || GROUP_SELECTED.size);
+  const role = (els.qRole?.value || "").trim();
+  return !!(name || id || status || role || GROUP_SELECTED.size);
 }
 
 function preparePrint(rows) {
@@ -406,12 +426,15 @@ const onChange = debounce(render, 160);
 els.qName.addEventListener("input", onChange);
 els.qId.addEventListener("input", onChange);
 els.qStatus.addEventListener("change", render);
+els.qRole.addEventListener("change", render);
 
+// group dropdown open/close
 els.btnGroupDD.addEventListener("click", () => openGroupDD());
 document.addEventListener("click", (e) => {
   if (!els.groupDD.contains(e.target)) openGroupDD(false);
 });
 
+// group search + checkboxes
 els.groupSearch.addEventListener("input", () => renderGroupList());
 
 els.groupList.addEventListener("change", (e) => {
@@ -431,6 +454,7 @@ els.btnClear.addEventListener("click", () => {
   els.qName.value = "";
   els.qId.value = "";
   els.qStatus.value = "";
+  els.qRole.value = "";
   GROUP_SELECTED.clear();
   updateGroupDDText();
   renderGroupList();
@@ -462,4 +486,5 @@ els.btnPrint.addEventListener("click", () => {
   window.print();
 });
 
+// Auto load
 fetchSheet().catch(() => setStatus("Ready", "idle"));
