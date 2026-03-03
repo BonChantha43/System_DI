@@ -111,9 +111,10 @@ h1{ margin:0; font-size:26px; letter-spacing:.2px; }
   overflow:hidden;
 }
 
+/* ✅ 5 columns + actions */
 .controls{
   display:grid;
-  grid-template-columns: 1.2fr 1fr 1fr auto;
+  grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr auto;
   gap:12px;
   padding: 14px;
   background: var(--panelTop);
@@ -142,12 +143,6 @@ input::placeholder{ color: rgba(120,130,155,.7); }
 input:focus, select:focus{
   border-color: rgba(106,183,255,.65);
   box-shadow: 0 0 0 4px rgba(106,183,255,.18);
-}
-
-/* Multi-select group */
-select[multiple]{
-  min-height: 46px;
-  padding: 10px 12px;
 }
 
 .hint{
@@ -261,54 +256,8 @@ td{ font-size: 14px; }
 }
 
 /* =========================
-   PRINT (Save as PDF)
+   Group Dropdown (checkbox multi-select)
 ========================= */
-@media print{
-  body{
-    background: #ffffff !important;
-    color: #000 !important;
-  }
-
-  .top, .controls, .rightTop, .foot, .meta{
-    display: none !important;
-  }
-
-  .panel{
-    box-shadow: none !important;
-    border: none !important;
-    background: #fff !important;
-  }
-
-  .table{
-    min-width: 0 !important;
-    width: 100% !important;
-  }
-
-  th{
-    position: static !important;
-    background: #f2f4f7 !important;
-    color: #000 !important;
-  }
-
-  td, th{
-    border-bottom: 1px solid #ddd !important;
-    color: #000 !important;
-  }
-
-  .badge{
-    border: 1px solid #bbb !important;
-    background: #fff !important;
-    color: #000 !important;
-  }
-
-  @page { margin: 12mm; }
-}
-/* make room for new Status filter column */
-.controls{
-  grid-template-columns: 1.2fr 1fr 1fr 1fr auto;
-}
-
-/* Dropdown (Group multi-select) */
 .dd{ position: relative; }
 .ddBtn{
   width:100%;
@@ -380,8 +329,50 @@ td{ font-size: 14px; }
 .ddItem input{ width: 16px; height:16px; }
 .ddItem span{ font-size: 13px; }
 
-/* responsive */
 @media (max-width: 980px){
-  .controls{ grid-template-columns: 1fr; }
   .ddMenu{ position: static; width: 100%; margin-top: 8px; }
+}
+
+/* =========================
+   PRINT (Save as PDF)
+========================= */
+@media print{
+  body{
+    background: #ffffff !important;
+    color: #000 !important;
+  }
+
+  .top, .controls, .rightTop, .foot, .meta{
+    display: none !important;
+  }
+
+  .panel{
+    box-shadow: none !important;
+    border: none !important;
+    background: #fff !important;
+  }
+
+  .table{
+    min-width: 0 !important;
+    width: 100% !important;
+  }
+
+  th{
+    position: static !important;
+    background: #f2f4f7 !important;
+    color: #000 !important;
+  }
+
+  td, th{
+    border-bottom: 1px solid #ddd !important;
+    color: #000 !important;
+  }
+
+  .badge{
+    border: 1px solid #bbb !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  @page { margin: 12mm; }
 }
