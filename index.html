@@ -8,6 +8,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Kantumruy+Pro:wght@300;400;600;700&display=swap" rel="stylesheet">
+
   <link rel="icon" type="image/png" href="./image.png">
   <link rel="stylesheet" href="./styles.css" />
 </head>
@@ -45,10 +46,36 @@
           <input id="qId" type="text" placeholder="ឧ: 1001 / FEA2024..." autocomplete="off" />
         </div>
 
+        <!-- ✅ Group dropdown (click to open) -->
         <div class="field">
-          <label>Search តាមក្រុម</label>
-          <select id="qGroup">
-            <option value="">ក្រុមទាំងអស់</option>
+          <label>Search តាមក្រុម (ជ្រើសច្រើនបាន)</label>
+
+          <div class="dd" id="groupDD">
+            <button class="ddBtn" id="btnGroupDD" type="button" aria-haspopup="listbox" aria-expanded="false">
+              <span id="groupDDText">ក្រុមទាំងអស់</span>
+              <span class="ddCaret">▾</span>
+            </button>
+
+            <div class="ddMenu" id="groupMenu" role="listbox" aria-multiselectable="true">
+              <div class="ddTop">
+                <input id="groupSearch" type="text" placeholder="ស្វែងរកក្រុម..." autocomplete="off" />
+                <div class="ddActions">
+                  <button class="mini" id="btnGroupAll" type="button">Select All</button>
+                  <button class="mini ghost" id="btnGroupNone" type="button">Clear</button>
+                </div>
+              </div>
+              <div class="ddList" id="groupList"></div>
+            </div>
+          </div>
+
+          <div class="hint">Tip: ចុចលើ dropdown → ជ្រើស checkbox ក្រុម</div>
+        </div>
+
+        <!-- ✅ Status filter -->
+        <div class="field">
+          <label>ស្ថានភាព</label>
+          <select id="qStatus">
+            <option value="">ទាំងអស់</option>
           </select>
         </div>
 
@@ -59,7 +86,6 @@
         </div>
       </div>
 
-      <!-- KPIs (Total Rows + Matched removed) -->
       <div class="meta">
         <div class="kpi">
           <div class="kpiLabel">បុគ្គលិកសរុប</div>
@@ -81,19 +107,20 @@
         <table class="table">
           <thead>
             <tr>
-                <th>ល.រ</th>
-                <th>ឈ្មោះ</th>
-                <th>ភេទ</th>
-                <th>ថ្នាក់</th>
-                <th>ជំនាន់</th>
-                <th>តួនាទី</th>
-                <th>ID</th>
-                <th>ក្រុម</th>
-              </tr>
+              <th>ល.រ</th>
+              <th>ឈ្មោះ</th>
+              <th>ភេទ</th>
+              <th>ថ្នាក់</th>
+              <th>ជំនាន់</th>
+              <th>តួនាទី</th>
+              <th>ID</th>
+              <th>ក្រុម</th>
+              <th>ស្ថានភាព</th>
+            </tr>
           </thead>
           <tbody id="tbody">
             <tr class="empty">
-                <td colspan="8">មិនទាន់មានទិន្នន័យ… ចុច Reload</td>
+              <td colspan="9">មិនទាន់មានទិន្នន័យ… ចុច Reload</td>
             </tr>
           </tbody>
         </table>
