@@ -111,7 +111,7 @@ h1{ margin:0; font-size:26px; letter-spacing:.2px; }
   overflow:hidden;
 }
 
-/* ✅ 5 columns + actions */
+/* 5 filter columns + actions */
 .controls{
   display:grid;
   grid-template-columns: 1.2fr 1fr 1fr 1fr 1fr auto;
@@ -143,12 +143,6 @@ input::placeholder{ color: rgba(120,130,155,.7); }
 input:focus, select:focus{
   border-color: rgba(106,183,255,.65);
   box-shadow: 0 0 0 4px rgba(106,183,255,.18);
-}
-
-.hint{
-  margin-top: 6px;
-  font-size: 12px;
-  color: var(--muted);
 }
 
 .actions{
@@ -256,7 +250,7 @@ td{ font-size: 14px; }
 }
 
 /* =========================
-   Group Dropdown (checkbox multi-select)
+   Group Dropdown
 ========================= */
 .dd{ position: relative; }
 .ddBtn{
@@ -334,45 +328,151 @@ td{ font-size: 14px; }
 }
 
 /* =========================
-   PRINT (Save as PDF)
+   PRINT
+   ✅ Header shows only on Page 1 (NOT fixed)
+   ✅ KPI is plain (no box)
 ========================= */
 @media print{
-  body{
-    background: #ffffff !important;
-    color: #000 !important;
+  :root{
+    --pm: 10mm;
+    --hdrPad: 6mm;
   }
 
-  .top, .controls, .rightTop, .foot, .meta{
-    display: none !important;
+  @page{ margin: var(--pm); }
+
+  body{
+    background:#fff !important;
+    color:#000 !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
   }
+
+  .top, .controls, .rightTop, .foot{ display:none !important; }
 
   .panel{
-    box-shadow: none !important;
-    border: none !important;
-    background: #fff !important;
+    border:none !important;
+    box-shadow:none !important;
+    background:#fff !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    margin: 0 !important;
   }
 
+  .tableWrap{
+    overflow: visible !important;
+    height:auto !important;
+    max-height:none !important;
+  }
+
+  thead{ display: table-header-group !important; }
+  tr{ break-inside: avoid !important; page-break-inside: avoid !important; }
+
+  /* ✅ Header in normal flow -> appears once (Page 1 only) */
+  #printHeader{
+    position: static !important;
+    padding: 0 0 4mm 0 !important;
+    background:#fff !important;
+    color:#000 !important;
+    border-bottom: 1px solid #e5e7eb;
+    margin-bottom: 4mm;
+  }
+
+  .phTop{
+    display:grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items:center;
+    font-size: 10.5px;
+    color:#111;
+  }
+  .phCenter{ font-weight:700; }
+
+  .phHeadRow{
+    display:grid;
+    grid-template-columns: 1fr 60mm;
+    gap: 8mm;
+    align-items:start;
+    margin-top: 2mm;
+  }
+
+  .phTitle{
+    font-size: 15px;
+    font-weight: 800;
+  }
+  .phSub{
+    margin-top: 1mm;
+    font-size: 10.5px;
+    color:#555;
+  }
+  .phLine{
+    margin-top: 1.5mm;
+    font-size: 10.5px;
+    color:#111;
+  }
+  .phRule{
+    margin-top: 3mm;
+    border-top: 1px solid #e5e7eb;
+  }
+
+  /* ✅ KPI small + plain */
+  .phKpis{
+    display:flex;
+    flex-direction:column;
+    gap: 1.5mm;
+    font-size: 10.5px;
+    align-items:flex-end;
+  }
+  .phKpiLine{
+    display:flex;
+    gap: 6mm;
+    justify-content:space-between;
+    width: 100%;
+  }
+  .phKpiLine span{ color:#444; }
+  .phKpiLine b{ font-size: 13px; }
+
+  .meta{ display:none !important; }
+
   .table{
+    width:100% !important;
     min-width: 0 !important;
-    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+
+  th, td{
+    border: 1px solid #e5e7eb !important;
+    padding: 6px 7px !important;
+    font-size: 11px !important;
+    color:#000 !important;
+    vertical-align: top;
+    white-space: normal !important;
+    word-break: break-word !important;
   }
 
   th{
-    position: static !important;
-    background: #f2f4f7 !important;
-    color: #000 !important;
+    background:#f3f4f6 !important;
+    font-weight: 800 !important;
   }
 
-  td, th{
-    border-bottom: 1px solid #ddd !important;
-    color: #000 !important;
+  /* ✅ keep "ល.រ" one line */
+  .table th:nth-child(1),
+  .table td:nth-child(1){
+    width: 11mm !important;
+    text-align:center !important;
+    white-space: nowrap !important;
+    word-break: normal !important;
   }
 
-  .badge{
-    border: 1px solid #bbb !important;
-    background: #fff !important;
-    color: #000 !important;
-  }
+  /* column widths */
+  .table th:nth-child(2), .table td:nth-child(2){ width: 44mm; }
+  .table th:nth-child(3), .table td:nth-child(3){ width: 12mm; text-align:center; }
+  .table th:nth-child(4), .table td:nth-child(4){ width: 18mm; }
+  .table th:nth-child(5), .table td:nth-child(5){ width: 18mm; }
+  .table th:nth-child(6), .table td:nth-child(6){ width: 20mm; }
+  .table th:nth-child(7), .table td:nth-child(7){ width: 20mm; }
+  .table th:nth-child(8), .table td:nth-child(8){ width: 18mm; text-align:center; }
+  .table th:nth-child(9), .table td:nth-child(9){ width: 20mm; text-align:center; }
 
-  @page { margin: 12mm; }
+  /* badges not used in print anyway, but keep clean */
+  .badge{ border: 1px solid #e5e7eb !important; background:#fff !important; color:#000 !important; }
 }
