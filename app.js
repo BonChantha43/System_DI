@@ -7,7 +7,7 @@
  *   G=Class (idx 3)
  *   H=Generation (idx 4)
  *   J=Role (idx 6)
- *   K=Status (idx 7) ✅
+ *   K=Status (idx 7)
  *   M=ID (idx 9)
  *   N=Group (idx 10)
  */
@@ -15,7 +15,7 @@
 const SHEET_ID = "1h6pqlcoUSKPWsk7it4jFLtg5Oc_w7gXGnKCXSIduK7E";
 const GID = "864623093";
 const SHEET_NAME = "DB_DI_DUC";
-const RANGE = "D10:N974"; // ✅ includes J,K,M,N
+const RANGE = "D10:N974";
 
 const GVIZ_URL =
   `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq` +
@@ -253,14 +253,14 @@ async function fetchSheet() {
   const mapped = rows.map((r) => {
     const c = r.c || [];
     return {
-      nameKh: cellToText(c[0]),   // D
-      gender: cellToText(c[2]),   // F
-      clazz:  cellToText(c[3]),   // G
-      gen:    cellToText(c[4]),   // H
-      role:   cellToText(c[6]),   // J
-      status: cellToText(c[7]),   // K ✅
-      id:     cellToText(c[9]),   // M
-      group:  cellToText(c[10]),  // N
+      nameKh: cellToText(c[0]),
+      gender: cellToText(c[2]),
+      clazz:  cellToText(c[3]),
+      gen:    cellToText(c[4]),
+      role:   cellToText(c[6]),
+      status: cellToText(c[7]),
+      id:     cellToText(c[9]),
+      group:  cellToText(c[10]),
     };
   }).filter(r => r.nameKh || r.id || r.group || r.gender || r.clazz || r.gen || r.role || r.status);
 
@@ -286,7 +286,7 @@ async function fetchSheet() {
 }
 
 /* =========================
-   Filtering
+   Filtering + Render
 ========================= */
 function applyFilter(rows) {
   const qName = norm(els.qName.value);
@@ -321,13 +321,11 @@ function render() {
   els.kpiFemale.textContent = String(mf.female);
 
   if (!rows.length) {
-    els.tbody.innerHTML = `
-      <tr class="empty"><td colspan="9">មិនទាន់មានទិន្នន័យ… ចុច Reload</td></tr>`;
+    els.tbody.innerHTML = `<tr class="empty"><td colspan="9">មិនទាន់មានទិន្នន័យ… ចុច Reload</td></tr>`;
     return;
   }
   if (!filtered.length) {
-    els.tbody.innerHTML = `
-      <tr class="empty"><td colspan="9">រកមិនឃើញទិន្នន័យតាម Filter នេះទេ</td></tr>`;
+    els.tbody.innerHTML = `<tr class="empty"><td colspan="9">រកមិនឃើញទិន្នន័យតាម Filter នេះទេ</td></tr>`;
     return;
   }
 
@@ -352,12 +350,13 @@ function render() {
     els.tbody.insertAdjacentHTML("beforeend", `
       <tr class="empty"><td colspan="9">
         បង្ហាញតែ ${LIMIT} row ដំបូង (Matched សរុប ${filtered.length})
-      </td></tr>`);
+      </td></tr>
+    `);
   }
 }
 
 /* =========================
-   Print PDF (Auto)
+   Print helpers
 ========================= */
 function hasActiveFilter() {
   const name = (els.qName?.value || "").trim();
@@ -367,32 +366,85 @@ function hasActiveFilter() {
   return !!(name || id || status || role || GROUP_SELECTED.size);
 }
 
+function getFilterSummary() {
+  const parts = [];
+  const name = (els.qName?.value || "").trim();
+  const id = (els.qId?.value || "").trim();
+  const status = (els.qStatus?.value || "").trim();
+  const role = (els.qRole?.value || "").trim();
+
+  if (name) parts.push(`ឈ្មោះ: ${name}`);
+  if (id) parts.push(`ID: ${id}`);
+
+  if (GROUP_SELECTED.size) {
+    const selectedNames = GROUPS.filter(g => GROUP_SELECTED.has(norm(g)));
+    parts.push(`ក្រុម: ${selectedNames.join(", ") || "បានជ្រើស"}`);
+  } else {
+    parts.push(`ក្រុម: ទាំងអស់`);
+  }
+
+  parts.push(status ? `ស្ថានភាព: ${status}` : `ស្ថានភាព: ទាំងអស់`);
+  parts.push(role ? `តួនាទី: ${role}` : `តួនាទី: ទាំងអស់`);
+
+  return parts.join(" • ");
+}
+
+/* =========================
+   Print PDF
+   ✅ Header shows ONLY on Page 1 (not fixed)
+   ✅ KPI plain (no box)
+========================= */
 function preparePrint(rows) {
-  const title = document.querySelector(".brand h1")?.textContent?.trim() || "System DI";
-  const sub = document.querySelector(".sub")?.textContent?.trim() || "";
+  const topCenter = document.title || "System DI — Smart Search";
+  const reportTitle = "Digital Industry — Report";
+
+  const now = new Date();
+  const dt = now.toLocaleString(undefined, {
+    year: "numeric", month: "numeric", day: "numeric",
+    hour: "numeric", minute: "2-digit"
+  });
+
+  const filterSummary = getFilterSummary();
   const mf = countMaleFemale(rows);
 
   const headerHtml = `
-    <div id="printHeader" style="margin-bottom:10px">
-      <h2 style="margin:0 0 4px 0;font-size:18px">Digital Industry — Report</h2>
-      <div style="color:#444;font-size:12px;margin-bottom:8px">${escapeHtml(sub)}</div>
-      <div style="font-size:12px;color:#111">
-        បុគ្គលិកសរុប: <b>${rows.length}</b> —
-        ប្រុស: <b>${mf.male}</b> —
-        ស្រី: <b>${mf.female}</b>
+    <div id="printHeader">
+      <div class="phTop">
+        <div class="phLeft">${escapeHtml(dt)}</div>
+        <div class="phCenter">${escapeHtml(topCenter)}</div>
+        <div class="phRight"></div>
       </div>
-      <hr style="border:none;border-top:1px solid #ddd;margin:10px 0 0 0">
+
+      <div class="phHeadRow">
+        <div class="phHeadLeft">
+          <div class="phTitle">${escapeHtml(reportTitle)}</div>
+          <div class="phSub">Search ឈ្មោះ / ID និង Filter តាមក្រុម</div>
+          <div class="phLine">${escapeHtml(filterSummary)}</div>
+        </div>
+
+        <!-- ✅ KPI plain text (no box) -->
+        <div class="phKpis">
+          <div class="phKpiLine"><span>មនុស្សសរុប</span><b>${rows.length}</b></div>
+          <div class="phKpiLine"><span>ប្រុសសរុប</span><b>${mf.male}</b></div>
+          <div class="phKpiLine"><span>ស្រីសរុប</span><b>${mf.female}</b></div>
+        </div>
+      </div>
+
+      <div class="phRule"></div>
     </div>
   `;
 
   const panel = document.querySelector(".panel");
-  if (panel && !document.getElementById("printHeader")) {
+  if (panel) {
+    const old = document.getElementById("printHeader");
+    if (old) old.remove();
     panel.insertAdjacentHTML("afterbegin", headerHtml);
   }
 
   const tbody = document.getElementById("tbody");
   tbody.setAttribute("data-original-html", tbody.innerHTML);
 
+  // plain print rows (no badges)
   tbody.innerHTML = rows.map((r, i) => `
     <tr>
       <td>${i + 1}</td>
@@ -428,15 +480,13 @@ els.qId.addEventListener("input", onChange);
 els.qStatus.addEventListener("change", render);
 els.qRole.addEventListener("change", render);
 
-// group dropdown open/close
+// group dropdown
 els.btnGroupDD.addEventListener("click", () => openGroupDD());
 document.addEventListener("click", (e) => {
   if (!els.groupDD.contains(e.target)) openGroupDD(false);
 });
 
-// group search + checkboxes
 els.groupSearch.addEventListener("input", () => renderGroupList());
-
 els.groupList.addEventListener("change", (e) => {
   const cb = e.target.closest('input[type="checkbox"][data-group]');
   if (!cb) return;
